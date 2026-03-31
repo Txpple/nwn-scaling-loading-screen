@@ -1,0 +1,76 @@
+//=============================================================================
+//
+// loadscreen_vs.shd
+// Vertex shader for improved loading screens.  
+//
+// Matthew (Txpple) last revised Aug 8 2025
+// 
+//=============================================================================
+
+uniform float scriptableFloat1;
+
+uniform highp vec2 screenParams;
+uniform highp int screenWidth;
+uniform highp int screenHeight;
+uniform highp mat4 m_mvp;
+uniform highp mat4 m_texture;
+attribute highp vec4 vPos;
+attribute highp vec2 vTcIn;
+varying highp vec2 vVertexTexCoords;
+
+void main ()
+{
+    // Mesh dimensions - 16:9 ratio matching our content
+    const float meshWidth = 96.0;   // in pnl_loadscreen.mdl
+    const float meshHeight = 54.0;  // in pnl_loadscreen.mdl
+    const float meshAspect = meshWidth / meshHeight;  // 16:9
+    const float basePixelsPerUnit = 100.0;  // Mesh units to pixel conversion
+    
+    // UI scaling compensation - user has UI scaled - acquired from player scriptable uniforms
+    // We need to counter-scale to prevent zooming in
+    float fUIScale = scriptableFloat1;
+    
+    // Validate fUIScale is within acceptable range (1.0 to 1.7)
+    // If outside range, clamp to valid range
+    fUIScale = clamp(fUIScale, 1.0, 1.7);
+    
+    // Get screen dimensions with safety checks
+    highp float screenX = screenParams.x;
+    highp float screenY = screenParams.y;
+    if (screenX <= 0.0) screenX = float(screenWidth);
+    if (screenY <= 0.0) screenY = float(screenHeight);
+    
+    highp float screenAspect = screenX / screenY;
+    
+    // Calculate uniform scale to fit screen while maintaining aspect ratio
+    highp float scaleX = screenX / (meshWidth * basePixelsPerUnit);
+    highp float scaleY = screenY / (meshHeight * basePixelsPerUnit);
+    highp float scale = min(scaleX, scaleY);  // Use smaller scale to fit without cropping
+    
+    // Apply UI scale compensation - divide by fUIScale to counter the UI scaling
+    scale = scale / fUIScale;
+    
+    // Apply scaling directly to vertex position (no matrix needed!)
+    gl_Position = m_mvp * vec4(vPos.xy * scale, vPos.z, vPos.w);
+    
+    // Expand UVs beyond 0-1 range to create black bars
+    // The expansion factor determines how much of the mesh shows black
+    // When UVs go outside 0-1, the fragment shader renders black
+    highp vec2 adjustedUV = vTcIn;
+    
+    if (screenAspect > meshAspect) {
+        // Screen wider than 16:9: expand UVs horizontally for pillarboxes
+        // This makes the texture cover only the center portion of the mesh
+        float uvExpansion = screenAspect / meshAspect;
+        adjustedUV.x = (vTcIn.x - 0.5) * uvExpansion + 0.5;
+    } else if (screenAspect < meshAspect) {
+        // Screen taller than 16:9: expand UVs vertically for letterboxes
+        // This makes the texture cover only the center portion of the mesh
+        float uvExpansion = meshAspect / screenAspect;
+        adjustedUV.y = (vTcIn.y - 0.5) * uvExpansion + 0.5;
+    }
+    // else: Perfect 16:9 match, no UV adjustment needed
+    
+    // Pass adjusted UVs to fragment shader (outside 0-1 = black bars)
+    vVertexTexCoords = (m_texture * vec4(adjustedUV.x, adjustedUV.y, 0.0, 1.0)).xy;
+}

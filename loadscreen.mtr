@@ -1,0 +1,5 @@
+//************************************************
+//  Full screen loadscreen system.
+//************************************************
+customshadervs loadscreen_vs
+customshaderfs loadscreen_fs

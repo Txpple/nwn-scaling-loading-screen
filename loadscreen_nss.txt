@@ -1,0 +1,11 @@
+best placed in module enter and area exit ; area enter triggers a bit too late  
+  
+  object oPC = GetEnteringObject();
+  if (GetIsPC(oPC))
+  {
+
+    int iUIScale = GetPlayerDeviceProperty(oPC,PLAYER_DEVICE_PROPERTY_UI_SCALE);
+    float fUIScale = IntToFloat(iUIScale) / 100;
+    SetShaderUniformFloat(oPC, SHADER_UNIFORM_1, fUIScale);
+
+  }

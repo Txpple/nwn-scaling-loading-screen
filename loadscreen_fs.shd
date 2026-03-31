@@ -1,0 +1,51 @@
+//=============================================================================
+//
+// loadscreen_fs.shd
+// Fragment shader for improved loading screens.  
+//
+// Matthew (Txpple) last revised Aug 8 2025
+// 
+//=============================================================================
+
+uniform sampler2D texUnit0;
+varying vec2 vVertexTexCoords;
+
+void main ()
+{
+    // Define soft edge fade zone width (in UV space)
+    const float fadeZone = 0.01; // Adjust for softer/harder edge
+    
+    // Pure black for bars
+    const vec3 barColor = vec3(0.0, 0.0, 0.0);
+    
+    // Calculate fade factor for soft edges
+    float fadeFactor = 1.0;
+    
+    // Horizontal soft fade (for pillarboxes)
+    if (vVertexTexCoords.x < 0.0) {
+        fadeFactor = smoothstep(-fadeZone, 0.0, vVertexTexCoords.x);
+    } else if (vVertexTexCoords.x > 1.0) {
+        fadeFactor = smoothstep(1.0 + fadeZone, 1.0, vVertexTexCoords.x);
+    }
+    
+    // Vertical soft fade (for letterboxes)
+    if (vVertexTexCoords.y < 0.0) {
+        fadeFactor *= smoothstep(-fadeZone, 0.0, vVertexTexCoords.y);
+    } else if (vVertexTexCoords.y > 1.0) {
+        fadeFactor *= smoothstep(1.0 + fadeZone, 1.0, vVertexTexCoords.y);
+    }
+    
+    // Check if we're in the valid texture area (0-1 range)
+    if (vVertexTexCoords.x < 0.0 || vVertexTexCoords.x > 1.0 || 
+        vVertexTexCoords.y < 0.0 || vVertexTexCoords.y > 1.0) {
+        // Outside texture bounds - render bars with soft fade
+        gl_FragColor = vec4(barColor, 1.0);
+    } else if (fadeFactor < 1.0) {
+        // In the fade zone - blend between texture and bar color
+        vec4 texColor = texture2D(texUnit0, vVertexTexCoords);
+        gl_FragColor = vec4(mix(barColor, texColor.rgb, fadeFactor), 1.0);
+    } else {
+        // Inside texture bounds - render the texture
+        gl_FragColor = texture2D(texUnit0, vVertexTexCoords);
+    }
+}
