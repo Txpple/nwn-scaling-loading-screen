@@ -1,2 +1,13 @@
 *.tga filter=lfs diff=lfs merge=lfs -text
 *.dds filter=lfs diff=lfs merge=lfs -text
+
+# GitHub Linguist overrides — make GLSL show up in the language bar
+# and keep NWN-proprietary asset formats out of language stats.
+
+*.shd linguist-language=GLSL
+*.shd linguist-detectable=true
+
+# NWN-proprietary formats — not real source code, don't count toward stats
+*.mdl linguist-vendored=true
+*.mtr linguist-vendored=true
+*.2da linguist-vendored=true
